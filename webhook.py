@@ -56,11 +56,11 @@ def process_webhook_event(data):
 
 
 def parse_branches(labels):
-    return [label.split(LABEL_HEADER)[1] for label in labels if LABEL_HEADER in label]
+    return [label['title'].split(LABEL_HEADER)[1] for label in labels if LABEL_HEADER in label['title']]
 
 
 def valid_webhook_request(data):
-    return 'object_kind' in data and data['object_kind'] == 'merge_request' and any(LABEL_HEADER in label for label in data['object_attributes']['labels']) and data['object_attributes']['action'] == 'merge'
+    return 'object_kind' in data and data['object_kind'] == 'merge_request' and any(LABEL_HEADER in label['title'] for label in data['object_attributes']['labels']) and data['object_attributes']['action'] == 'merge'
 
 
 def create_branch(source_branch, branch, project_id):
