@@ -42,7 +42,7 @@ def webhook():
         return jsonify({'message': 'Received'}), 200
     except Exception as e:
         app.logger.error(f'Error: {e}')
-        return jsonify({'message': 'Received'}), 500
+        return jsonify({'message': 'Received with error, check logs'}), 200
 
 
 def process_webhook_event(data):
