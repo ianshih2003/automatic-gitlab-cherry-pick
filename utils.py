@@ -25,6 +25,9 @@ def initialize_config():
         config_params["log_file"] = os.getenv(
             'LOG_FILE', config["DEFAULT"]["LOG_FILE"])
 
+        config_params["env"] = os.getenv(
+            'ENV', config["DEFAULT"]["ENV"])
+
     except KeyError as e:
         raise KeyError(
             "Key was not found. Error: {} .Aborting server".format(e))
