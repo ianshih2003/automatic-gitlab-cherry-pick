@@ -1,8 +1,5 @@
-import json
 from flask import Flask, request, jsonify
 import requests
-from configparser import ConfigParser
-import os
 import logging
 
 from utils import initialize_config
