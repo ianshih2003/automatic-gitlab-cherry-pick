@@ -46,9 +46,8 @@ def webhook():
 
 
 def process_webhook_event(data):
-    app.logger.info(data)
-    app.logger.info(f'Event: {extract_important_data(data)}')
     if valid_webhook_request(data):
+        app.logger.info(f'Event: {extract_important_data(data)}')
         branches = parse_branches(data['object_attributes']['labels'])
 
         for i, branch in enumerate(branches):
@@ -148,9 +147,8 @@ def extract_important_data(data):
     assignee_ids = data['object_attributes']['assignee_ids']
     labels = data['object_attributes']['labels']
     id = data['object_attributes']['id']
-    action = data['object_attributes']['action']
 
-    return ",".join(str(field) for field in [source_branch, target_branch, source_project_id, assignee_ids, labels, id, action])
+    return ",".join(str(field) for field in [source_branch, target_branch, source_project_id, assignee_ids, labels, id])
 
 
 if __name__ == '__main__':
