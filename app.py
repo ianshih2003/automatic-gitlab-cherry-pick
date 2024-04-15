@@ -143,7 +143,8 @@ def extract_important_data(data):
     target_branch = data['object_attributes']['target_branch']
     source_project_id = data['object_attributes']['source_project_id']
     assignee_ids = data['object_attributes']['assignee_ids']
-    labels = ",".join([label['title'] for label in labels])
+    labels = ",".join([label['title']
+                      for label in data['object_attributes']['labels']])
     id = data['object_attributes']['id']
 
     return ",".join(str(field) for field in [source_branch, target_branch, source_project_id, assignee_ids, labels, id])
