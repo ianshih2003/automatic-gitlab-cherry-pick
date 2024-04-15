@@ -5,45 +5,31 @@ from configparser import ConfigParser
 import os
 import logging
 
+from utils import initialize_config
+
 URL = 'https://gitlab.com/api/v4'
 LABEL_HEADER = 'cp-to-'
 
 
 app = Flask(__name__)
 
+config = initialize_config()
+
+app.logger.setLevel(config['logging_level'])  # Set log level to INFO
+handler = logging.FileHandler(config['log_file'])  # Log to a file
+formatter = logging.Formatter(
+    '%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+handler.setFormatter(formatter)
+app.logger.addHandler(handler)
+
+
 session = requests.Session()
+
+session.headers.update(
+    {'PRIVATE-TOKEN': config["token"], 'Content-Type': 'application/json'})
 
 
 # GitLab webhook endpoint
-
-def initialize_config():
-    """ Parse env variables or config file to find program config params
-
-    Function that search and parse program configuration parameters in the
-    program environment variables first and the in a config file.
-    If at least one of the config parameters is not found a KeyError exception
-    is thrown. If a parameter could not be parsed, a ValueError is thrown.
-    If parsing succeeded, the function returns a ConfigParser object
-    with config parameters
-    """
-
-    config = ConfigParser(os.environ)
-    # If config.ini does not exists original config object is not modified
-    config.read("config.ini")
-
-    config_params = {}
-    try:
-        config_params["token"] = config["DEFAULT"]["TOKEN"]
-        config_params["logging_level"] = os.getenv(
-            'LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
-        config_params["log_file"] = os.getenv(
-            'LOG_FILE', config["DEFAULT"]["LOG_FILE"])
-
-    except KeyError as e:
-        raise KeyError(
-            "Key was not found. Error: {} .Aborting server".format(e))
-
-    return config_params
 
 
 @app.route('/webhook', methods=['POST'])
@@ -55,11 +41,13 @@ def webhook():
 
         return jsonify({'message': 'Received'}), 200
     except Exception as e:
-        logging.error(f'Error: {e}')
+        app.logger.error(f'Error: {e}')
+        return jsonify({'message': 'Received with error, check logs'}), 200
 
 
 def process_webhook_event(data):
-    logging.info(f'Event: {extract_important_data(data)}')
+    app.logger.info(data)
+    app.logger.info(f'Event: {extract_important_data(data)}')
     if valid_webhook_request(data):
         branches = parse_branches(data['object_attributes']['labels'])
 
@@ -68,11 +56,11 @@ def process_webhook_event(data):
 
 
 def parse_branches(labels):
-    return [label.split(LABEL_HEADER)[1] for label in labels if LABEL_HEADER in label]
+    return [label['title'].split(LABEL_HEADER)[1] for label in labels if LABEL_HEADER in label['title']]
 
 
 def valid_webhook_request(data):
-    return 'object_kind' in data and data['object_kind'] == 'merge_request' and any(LABEL_HEADER in label for label in data['object_attributes']['labels']) and data['object_attributes']['action'] == 'merge'
+    return 'object_kind' in data and data['object_kind'] == 'merge_request' and any(LABEL_HEADER in label['title'] for label in data['object_attributes']['labels']) and data['object_attributes']['action'] == 'merge'
 
 
 def create_branch(source_branch, branch, project_id):
@@ -106,7 +94,7 @@ def cherry_pick(hash, target_branch, project_id):
         }), 201, 'Failed to create cherry-pick merge request')
 
     if response:
-        print(
+        app.logger.info(
             f'Cherry-pick merge request created for {project_id}: {response.json()["web_url"]}')
 
 
@@ -130,7 +118,7 @@ def create_merge_request(project_id, source_branch, target_branch, merge_request
         session.post(f'{URL}/projects/{project_id}/merge_requests', json=data), 201, 'Failed to create merge request')
 
     if response:
-        print(
+        app.logger.info(
             f'Merge request created for {project_id}: {response.json()["web_url"]}')
 
 
@@ -165,25 +153,5 @@ def extract_important_data(data):
     return ",".join(str(field) for field in [source_branch, target_branch, source_project_id, assignee_ids, labels, id, action])
 
 
-def initialize_log(logging_level, log_file):
-    """
-    Python custom logging initialization
-
-    Current timestamp is added to be able to identify in docker
-    compose logs the date when the log has arrived
-    """
-    logging.basicConfig(
-        format='%(asctime)s %(levelname)-8s %(message)s',
-        level=logging_level,
-        datefmt='%Y-%m-%d %H:%M:%S',
-        filename=log_file
-    )
-
-
 if __name__ == '__main__':
-    config = initialize_config()
-    initialize_log(config["logging_level"], config["log_file"])
-    session.headers.update(
-        {'PRIVATE-TOKEN': config["token"], 'Content-Type': 'application/json'})
-
     app.run(debug=True, host='0.0.0.0', port=5000)
