@@ -152,7 +152,7 @@ def extract_important_data(data):
 
 if __name__ == '__main__':
     if config['env'] == 'dev':
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        app.run(debug=True, host='0.0.0.0', port=config['port'])
     else:
         from waitress import serve
-        serve(app, host='0.0.0.0', port=5000)
+        serve(app, host='0.0.0.0', port=config['port'])

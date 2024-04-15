@@ -28,6 +28,9 @@ def initialize_config():
         config_params["env"] = os.getenv(
             'ENV', config["DEFAULT"]["ENV"])
 
+        config_params["port"] = os.getenv(
+            'PORT', config["DEFAULT"]["PORT"])
+
     except KeyError as e:
         raise KeyError(
             "Key was not found. Error: {} .Aborting server".format(e))
