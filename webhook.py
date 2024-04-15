@@ -181,6 +181,7 @@ def initialize_log(logging_level, log_file):
 
 
 if __name__ == '__main__':
+    print("test")
     config = initialize_config()
     initialize_log(config["logging_level"], config["log_file"])
     session.headers.update(
