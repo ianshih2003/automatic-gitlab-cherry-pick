@@ -1,0 +1,6 @@
+[DEFAULT]
+TOKEN = your-gitlab-token
+LOGGING_LEVEL = INFO
+LOG_FILE = log.log
+ENV = dev
+PORT = 10000

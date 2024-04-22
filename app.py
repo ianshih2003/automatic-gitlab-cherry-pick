@@ -13,11 +13,9 @@ app = Flask(__name__)
 config = initialize_config()
 
 app.logger.setLevel(config['logging_level'])  # Set log level to INFO
-handler = logging.FileHandler(config['log_file'])  # Log to a file
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-handler.setFormatter(formatter)
-app.logger.addHandler(handler)
+app.logger.handlers[0].setFormatter(formatter)
 
 
 session = requests.Session()
@@ -108,7 +106,9 @@ def create_merge_request(project_id, source_branch, target_branch, merge_request
         "assignee_ids": [merge_request_data['object_attributes']['assignee_ids']],
         "labels": "cherry-pick",
         "title": f"CP {original_commit_title} into {target_branch}",
-        "description": f"{merge_commit_description}\n\n(cherry picked from commit {merge_commit_hash})\n\n{original_commit_hash} {original_commit_title}"
+        "description": f"{merge_commit_description}\n\n(cherry picked from commit {merge_commit_hash})\n\n{original_commit_hash} {original_commit_title}",
+        "approvals_before_merge": 0,
+        "remove_source_branch": True,
     }
 
     response = validate_response(
