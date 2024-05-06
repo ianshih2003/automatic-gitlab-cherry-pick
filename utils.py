@@ -17,6 +17,7 @@ def initialize_config():
     # If config.ini does not exists original config object is not modified
     config.read("config.ini")
 
+    print("test")
     config_params = {}
     try:
         config_params["token"] = config["DEFAULT"]["TOKEN"]
