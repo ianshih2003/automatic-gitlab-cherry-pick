@@ -95,7 +95,6 @@ jobs:
           namespace: ${{ env.KUBERNETES_NAMESPACE }}
           overrideFiles: |
             ./devops/charts/app/values.yaml
-            ./devops/charts/app/values.${{ env.ENVIRONMENT }}.yaml
           overrides: |
             image.repository:${{ env.APP_DOCKER_IMAGE }}
             image.tag:${{ env.ENVIRONMENT }}-${{ env.GITHUB_SHA }}
