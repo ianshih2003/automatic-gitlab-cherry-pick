@@ -43,9 +43,16 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-connect-timeout: '360s'
     nginx.ingress.kubernetes.io/proxy-send-timeout: '360s'
     nginx.ingress.kubernetes.io/proxy-read-timeout: '360s'
-    # kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: kovix-cert-issuer
+  host: fravega-wms-gitlab-cherry-pick-workflow.kovix.io
 
-resources: {}
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
 
 autoscaling:
   enabled: false
