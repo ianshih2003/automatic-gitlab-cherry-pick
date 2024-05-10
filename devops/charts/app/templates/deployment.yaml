@@ -41,9 +41,6 @@ spec:
                 name: {{ .Values.configMapName }}
             - secretRef:
                 name: {{ .Values.secretName }}
-          env:
-            - name: NEXTAUTH_URL
-              value: https://{{ .Values.ingress.host }}/
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}

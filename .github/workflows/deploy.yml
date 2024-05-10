@@ -8,7 +8,7 @@ on:
 env:
   GITHUB_SHA: ${{ github.sha }}
   ENVIRONMENT: 'prod'
-  APP_DOCKER_IMAGE: ${{ secrets.ACR_LOGIN_SERVER }}/gitlab-cherry-pick-workflow
+  APP_DOCKER_IMAGE: ${{ secrets.ACR_LOGIN_SERVER }}/fravega-wms-gitlab-cherry-pick-workflow
 
 jobs:
   build-app:
@@ -18,7 +18,7 @@ jobs:
       ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
       ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
       ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
-      APP_DOCKER_IMAGE_CACHE: ${{ secrets.ACR_LOGIN_SERVER }}/gitlab-cherry-pick-workflow-cache
+      APP_DOCKER_IMAGE_CACHE: ${{ secrets.ACR_LOGIN_SERVER }}/fravega-wms-gitlab-cherry-pick-workflow-cache
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -54,7 +54,7 @@ jobs:
       id-token: write
     env:
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      KUBERNETES_NAMESPACE: gitlab-cherry-pick-workflow-prod
+      KUBERNETES_NAMESPACE: fravega-wms-gitlab-cherry-pick-workflow-prod
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -91,7 +91,7 @@ jobs:
         with:
           renderEngine: 'helm'
           helmChart: ./devops/charts/app
-          releaseName: gitlab-cherry-pick-workflow-${{ env.ENVIRONMENT }}
+          releaseName: fravega-wms-gitlab-cherry-pick-workflow-${{ env.ENVIRONMENT }}
           namespace: ${{ env.KUBERNETES_NAMESPACE }}
           overrideFiles: |
             ./devops/charts/app/values.yaml

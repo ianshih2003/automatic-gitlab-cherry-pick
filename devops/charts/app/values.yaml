@@ -1,6 +1,6 @@
 replicaCount: 1
-configMapName: gitlab-cherry-pick-workflow-dev-config
-secretName: gitlab-cherry-pick-workflow-dev-secrets
+configMapName: fravega-wms-gitlab-cherry-pick-workflow-dev-config
+secretName: fravega-wms-gitlab-cherry-pick-workflow-dev-secrets
 
 image:
   repository: ''
