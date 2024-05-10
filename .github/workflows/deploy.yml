@@ -1,0 +1,111 @@
+name: Deploy
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+
+env:
+  GITHUB_SHA: ${{ github.sha }}
+  ENVIRONMENT: 'prod'
+  APP_DOCKER_IMAGE: ${{ secrets.ACR_LOGIN_SERVER }}/fravega-wms-gitlab-cherry-pick-workflow
+
+jobs:
+  build-app:
+    name: Build App
+    runs-on: ubuntu-latest
+    env:
+      ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+      APP_DOCKER_IMAGE_CACHE: ${{ secrets.ACR_LOGIN_SERVER }}/fravega-wms-gitlab-cherry-pick-workflow-cache
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Docker Setup Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ env.ACR_USERNAME }}
+          password: ${{ env.ACR_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          file: ./Dockerfile
+          tags: |
+            "${{ env.APP_DOCKER_IMAGE }}:${{ env.ENVIRONMENT }}-latest"
+            "${{ env.APP_DOCKER_IMAGE }}:${{ env.ENVIRONMENT }}-${{ env.GITHUB_SHA }}"
+          cache-from: type=registry,ref=${{ env.APP_DOCKER_IMAGE_CACHE }}
+          cache-to: type=registry,ref=${{ env.APP_DOCKER_IMAGE_CACHE }},mode=max
+
+  deploy-app:
+    name: Deploy App
+    runs-on: ubuntu-latest
+    needs: [build-app]
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      KUBERNETES_NAMESPACE: fravega-wms-gitlab-cherry-pick-workflow-prod
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set environment (Production)
+        run: |
+          echo "AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID_PROD }}" >> $GITHUB_ENV
+          echo "AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID_PROD }}" >> $GITHUB_ENV
+          echo "AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET_PROD }}" >> $GITHUB_ENV
+          echo "AKS_RESOURCE_GROUP=${{ secrets.AKS_RESOURCE_GROUP_PROD }}" >> $GITHUB_ENV
+          echo "AKS_CLUSTER_NAME=${{ secrets.AKS_CLUSTER_NAME_PROD }}" >> $GITHUB_ENV
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: '{"clientId":"${{ env.AZURE_CLIENT_ID }}","clientSecret":"${{ env.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ env.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ env.AZURE_TENANT_ID }}"}'
+
+      - name: Setup Kubelogin
+        uses: azure/use-kubelogin@v1
+        with:
+          kubelogin-version: 'v0.0.32'
+
+      - name: Get Kubernetes context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ env.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ env.AKS_CLUSTER_NAME }}
+          admin: 'false'
+          use-kubelogin: 'true'
+
+      - id: bake
+        name: Bake deployment
+        uses: azure/k8s-bake@v2
+        with:
+          renderEngine: 'helm'
+          helmChart: ./devops/charts/app
+          releaseName: fravega-wms-gitlab-cherry-pick-workflow-${{ env.ENVIRONMENT }}
+          namespace: ${{ env.KUBERNETES_NAMESPACE }}
+          overrideFiles: |
+            ./devops/charts/app/values.yaml
+            ./devops/charts/app/values.${{ env.ENVIRONMENT }}.yaml
+          overrides: |
+            image.repository:${{ env.APP_DOCKER_IMAGE }}
+            image.tag:${{ env.ENVIRONMENT }}-${{ env.GITHUB_SHA }}
+          helm-version: 'latest'
+
+      - name: Deploy to Kubernetes
+        uses: Azure/k8s-deploy@v4
+        with:
+          action: deploy
+          manifests: ${{ steps.bake.outputs.manifestsBundle }}
+          namespace: ${{ env.KUBERNETES_NAMESPACE }}
+          images: |
+            ${{ env.APP_DOCKER_IMAGE }}:${{ env.ENVIRONMENT }}-${{ env.GITHUB_SHA }}
