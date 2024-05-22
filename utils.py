@@ -19,7 +19,7 @@ def initialize_config():
 
     config_params = {}
     try:
-        config_params["token"] = config["DEFAULT"]["TOKEN"]
+        config_params["token"] = os.getenv("TOKEN", config["DEFAULT"]["TOKEN"])
         config_params["logging_level"] = os.getenv(
             'LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
         config_params["log_file"] = os.getenv(
